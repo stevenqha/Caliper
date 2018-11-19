@@ -6,6 +6,7 @@ constexpr byte DATA_RECEIVE_COMMAND = B11111110;
 
 void setup() {
     Serial.begin(9600);
+    pinMode(A0, INPUT);
 }
 
 void loop() {
