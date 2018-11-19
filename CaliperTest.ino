@@ -60,10 +60,6 @@ int zeroValue = 0;
 double newLength = 0;
 double oldLength = 0;
 
-#define TEXT_LEN 8
-char textfield[TEXT_LEN+1] = "";
-uint8_t textfield_i=0;
-
 void setup() {
   pinMode(POT, INPUT);
   Serial.begin(9600);
@@ -120,18 +116,18 @@ void loop() {
     tft.fillRect(TEXT_X, TEXT_Y, 210, 35, BLACK); //Clear old text with a black rectangle
   
     //Pad with appropriate number of spaces depending on the size of the number
-    if (length_ >= 100)
+    if (newLength >= 100)
       tft.print (" ");
-    else if (length_ < 100 && length_ >= 10)
+    else if (newLength < 100 && newLength >= 10)
       tft.print ("  ");
-    else if (length_ < 10 && length_ >= 0)
+    else if (newLength < 10 && newLength >= 0)
       tft.print ("   ");
     else{
-      length_ = length_*-1;
+      newLength = newLength*-1;
       tft.print ("-  ");  
     }
   }
-  tft.print (length_);
+  tft.print (newLength);
 
   oldLength = newLength;
 }
