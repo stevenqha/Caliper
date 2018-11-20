@@ -1,4 +1,3 @@
-
 #include <LiquidCrystal.h>
 
 #define POT   A0
@@ -26,16 +25,14 @@ void setup() {
 }
 
 void loop() {
-    //calibrate();
-
-    int potValue = analogRead(POT);
-    
+    //int potValue = analogRead(POT);
 
     lcd.setCursor(0,0);
     if (digitalRead(BUTTON) == LOW)
-        zeroValue = potValue;
+        calibrate();
+        //zeroValue = potValue;
 
-    currentReading = 0.03488 * (potValue - zeroValue);
+    //currentReading = 0.03488 * (potValue - zeroValue);
         
     if (currentReading != oldReading){
         //Pad with appropriate number of spaces depending on the size of the number
@@ -53,7 +50,7 @@ void loop() {
     }
 
     oldReading = currentReading;
-    delay(100);
+    //delay(100);
 }
 
 void serialEvent(){
@@ -68,7 +65,7 @@ void serialEvent(){
 
 double byteArrayToDouble(byte* byteArr){
     long* tempLongPtr = reinterpret_cast<long*> (byteArr);
-    double decodedValue= reinterpret_cast<double&>(*tempLongPtr);
+    double decodedValue = reinterpret_cast<double&>(*tempLongPtr);
     return decodedValue;
 }
 
