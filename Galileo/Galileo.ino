@@ -5,28 +5,34 @@ constexpr byte CALIBRATE_COMMAND = B11111111;
 constexpr byte DATA_RECEIVE_COMMAND = B11111110;
 
 void setup() {
-    Serial.begin(9600);
+    Serial1.begin(115200);
+    Serial.begin(115200);
     pinMode(A0, INPUT);
+
+    
+    pinMode(2, INPUT_PULLUP);
     analogReadResolution(12);
 }
 
 void loop() {
     double currentPosition = getCalibratedPosition();
     byte byteArr[4];
-    doubleToByteArray(currentPosition, byteArr);
-    sendDataToDisplay(byteArr);
-    serialEvent();
+    sendDataToDisplay(currentPosition);
+    delay(50);
+    if(digitalRead(2)== LOW)
+      calibrate();
+    //serialEvent();
 }
 
-void serialEvent(){
-    while (Serial.available()){
-          Serial.println("SERIAL EVENT");
-//        if (Serial.read() == CALIBRATE_COMMAND){
-          if (Serial.read() == 'c') {
-            calibrate();    
-        }
-    }
-}
+//void serialEvent(){
+//    while (Serial1.available()){
+//        //Serial.println("SERIAL EVENT");
+//        if (Serial1.read() == CALIBRATE_COMMAND){
+////        if (Serial.read() == 'c') {
+//            calibrate();    
+//        }
+//    }
+//}
 
 double getCalibratedPosition(){
     return getRawPosition() + offset;
@@ -36,7 +42,6 @@ double getRawPosition(){
     long rawPotReading = analogRead(A0);
     double potReading = runningAverage(rawPotReading);
     double mappedReading = 0.0029696125647186800 * potReading -0.11537717163673600;
-//    double mappedReading = 0.0029696 * potReading - 0.1418;
     double rawCaliperReading = mappedReading * GEAR_RATIO / PITCH * 25.4;
 
     Serial.println("");
@@ -50,7 +55,6 @@ double getRawPosition(){
     Serial.print("\t\t");
     Serial.print(rawCaliperReading + offset);
     Serial.print("\t"); 
-
             
     return rawCaliperReading;
 }
@@ -59,16 +63,14 @@ void calibrate(){
     offset = -1 * getRawPosition();
 }
 
-void doubleToByteArray(double d, byte* byteArr){
-    long* tempLongPtr = reinterpret_cast<long*>(byteArr);
-    *tempLongPtr = reinterpret_cast<long&>(d);
-}
-
-void sendDataToDisplay(byte data[]){
-    Serial.write(DATA_RECEIVE_COMMAND);
-    for(int i = 0; i < 4; i++){
-        Serial.write(data[i]);
-    }
+void sendDataToDisplay(double reading ){
+    Serial1.write(DATA_RECEIVE_COMMAND);
+    char doubleString[9];   
+    sprintf(doubleString, "%5.1f mm", reading);
+    Serial1.write(doubleString);
+    Serial.print("\t");
+    Serial.print(doubleString);
+    Serial1.flush();
 }
 
 double fmap(long x, double in_min, double in_max, double out_min, double out_max)
@@ -78,8 +80,7 @@ double fmap(long x, double in_min, double in_max, double out_min, double out_max
 
 double runningAverage(long M)
 {
-// #define LMSIZE 50
-#define LMSIZE 255
+  #define LMSIZE 25
  static long LM[LMSIZE]; // LastMeasurements
  static byte index = 0;
  static long long sum = 0;
