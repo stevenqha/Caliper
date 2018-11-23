@@ -24,14 +24,13 @@
 // For better pressure precision, we need to know the resistance
 // between X+ and X- Use any multimeter to read it
 // For the one we're using, its 300 ohms across the X plate
-TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
+//TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
 // Assign human-readable names to some common 16-bit color values:
 #define BLACK   0x0000
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
-//Elegoo_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 #define MINPRESSURE 10
 #define MAXPRESSURE 1000
 
@@ -52,11 +51,12 @@ MCUFRIEND_kbv tft;
 constexpr byte CALIBRATE_COMMAND = B11111111;
 constexpr byte DATA_RECEIVE_COMMAND = B11111110;
 
-double currentReading = 10.0;
-double oldReading = 1.0;
+bool isNewNumber = false;
+char number[9];
+String oldNum = "";
 
 void setup() {
-    Serial.begin(9600);
+    Serial.begin(115200);
     pinMode(XM, OUTPUT);
     pinMode(YP, OUTPUT);
     
@@ -78,67 +78,49 @@ void setup() {
     tft.setTextColor(WHITE);
     tft.setTextSize(6);
     tft.setCursor(TEXT_X,TEXT_Y);
-    tft.print("100.0mm");
     
 }
 
 void loop() {
-  
-    TSPoint p = ts.getPoint();
+    
+//    TSPoint p = ts.getPoint();
+//
+//    if (p.z > MINPRESSURE && p.z < MAXPRESSURE) { 
+//        int temp_py = p.y;
+//
+//        // scale touch screen coordinates to actual coordinates
+//        p.y = map(p.x, TS_MINX, TS_MAXX, tft.height(), 0);
+//        p.x = map(temp_py, TS_MINY, TS_MAXY, tft.width(), 0);
+//
+//        //Check if button has been pressed
+//        if (p.x < (ZERO_X + ZERO_L) && p.x > ZERO_X && p.y < (ZERO_Y+ZERO_W) && p.y > ZERO_Y) {
+//            calibrate();
+//        }
+//    }
 
-    if (p.z > MINPRESSURE && p.z < MAXPRESSURE) { 
-        int temp_py = p.y;
-
-        // scale touch screen coordinates to actual coordinates
-        p.y = map(p.x, TS_MINX, TS_MAXX, tft.height(), 0);
-        p.x = map(temp_py, TS_MINY, TS_MAXY, tft.width(), 0);
-
-        //Check if button has been pressed
-        if (p.x < (ZERO_X + ZERO_L) && p.x > ZERO_X && p.y < (ZERO_Y+ZERO_W) && p.y > ZERO_Y) {
-            calibrate();
-        }
+    if (isNewNumber){
+      tft.fillRect(TEXT_X, TEXT_Y, 300, 50, BLACK); //Clear old text with a black rectangle
+      tft.setCursor(TEXT_X,TEXT_Y);
+      tft.setTextColor(WHITE);
+      tft.setTextSize(6);
+      Serial.println(number);
+      tft.print(number);
+      isNewNumber = false;
     }
 
-    if (currentReading != oldReading){
-        tft.fillRect(TEXT_X, TEXT_Y, 300, 50, BLACK); //Clear old text with a black rectangle
-        String reading = String(round(currentReading * 10)/10);
-        
-        if(currentReading - (int)currentReading == 0)
-          reading += ".0";
-          
-        reading += "mm";
-        //Pad with appropriate number of spaces depending on the size of the number
-        if (currentReading >= 100)
-            reading = " " + reading;
-        else if (currentReading >= 10)
-            reading = "  " + reading;
-        else if (currentReading >= 0)
-            reading = "   " + reading;
-        else if (currentReading >= -10)
-            reading = "  -" + reading; 
-        else
-            reading = " -" + reading; 
-
-        tft.setCursor(TEXT_X,TEXT_Y);
-        tft.print (reading);
-        oldReading = currentReading;
-    }
+    
 }
 
 void serialEvent(){
-    if (Serial.available()>=5 && Serial.read() == DATA_RECEIVE_COMMAND){
-        byte byteArr[4];
-        for(int i = 0; i<4; i++){
-            byteArr[i]=Serial.read();
-        }
-        currentReading = byteArrayToDouble(byteArr);
+    if(Serial.available() >= 10 && Serial.read() == DATA_RECEIVE_COMMAND){
+      for(int i = 0; i < 8; i++){
+        number[i] = Serial.read();
+      }
+      Serial.read();
+      String newNum(number);
+      isNewNumber = !newNum.equals(oldNum);
+      oldNum = newNum;
     }
-}
-
-double byteArrayToDouble(byte* byteArr){
-    long* tempLongPtr = reinterpret_cast<long*> (byteArr);
-    double decodedValue= reinterpret_cast<double&>(*tempLongPtr);
-    return decodedValue;
 }
 
 void calibrate(){
