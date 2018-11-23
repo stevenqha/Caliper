@@ -14,12 +14,15 @@ void loop() {
     double currentPosition = getCalibratedPosition();
     byte byteArr[4];
     doubleToByteArray(currentPosition, byteArr);
-//    sendDataToDisplay(byteArr);
+    sendDataToDisplay(byteArr);
+    serialEvent();
 }
 
 void serialEvent(){
     while (Serial.available()){
-        if (Serial.read() == CALIBRATE_COMMAND){
+          Serial.println("SERIAL EVENT");
+//        if (Serial.read() == CALIBRATE_COMMAND){
+          if (Serial.read() == 'c') {
             calibrate();    
         }
     }
@@ -32,7 +35,8 @@ double getCalibratedPosition(){
 double getRawPosition(){
     long rawPotReading = analogRead(A0);
     double potReading = runningAverage(rawPotReading);
-    double mappedReading = 0.00299615382989385 * potReading;
+    double mappedReading = 0.0029696125647186800 * potReading -0.11537717163673600;
+//    double mappedReading = 0.0029696 * potReading - 0.1418;
     double rawCaliperReading = mappedReading * GEAR_RATIO / PITCH * 25.4;
 
     Serial.println("");
@@ -45,7 +49,7 @@ double getRawPosition(){
     Serial.print(rawCaliperReading);
     Serial.print("\t\t");
     Serial.print(rawCaliperReading + offset);
-    Serial.print("\t");
+    Serial.print("\t"); 
 
             
     return rawCaliperReading;
