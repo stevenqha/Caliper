@@ -1,6 +1,8 @@
-#include <Elegoo_GFX.h>    // Core graphics library
-#include <Elegoo_TFTLCD.h> // Hardware-specific library
+#include <Adafruit_GFX.h>    // Core graphics library
+#include <MCUFRIEND_kbv.h>   // Hardware-specific library
 #include <TouchScreen.h>   // Touchscreen library
+
+#include <FreeDefaultFonts.h>
 
 #if defined(__SAM3X8E__)
     #undef __FlashStringHelper::F(string_literal)
@@ -24,70 +26,65 @@
 // For the one we're using, its 300 ohms across the X plate
 TouchScreen ts = TouchScreen(XP, YP, XM, YM, 300);
 
-#define LCD_CS A3
-#define LCD_CD A2
-#define LCD_WR A1
-#define LCD_RD A0
-#define LCD_RESET A4
-
 // Assign human-readable names to some common 16-bit color values:
 #define BLACK   0x0000
 #define YELLOW  0xFFE0
 #define WHITE   0xFFFF
 
-Elegoo_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
+//Elegoo_TFTLCD tft(LCD_CS, LCD_CD, LCD_WR, LCD_RD, LCD_RESET);
 #define MINPRESSURE 10
 #define MAXPRESSURE 1000
 
 //Zero Button
-#define ZERO_L  100
-#define ZERO_W  60
-#define ZERO_X  110
-#define ZERO_Y  180
+#define ZERO_L  120
+#define ZERO_W  80
+#define ZERO_X  180
+#define ZERO_Y  250
+#define BUTTON_TEXT_X 195
+#define BUTTON_TEXT_Y 270
 
 //Length Text
-#define TEXT_X 20
-#define TEXT_Y 60
+#define TEXT_X 90
+#define TEXT_Y 75
+
+MCUFRIEND_kbv tft;
 
 constexpr byte CALIBRATE_COMMAND = B11111111;
 constexpr byte DATA_RECEIVE_COMMAND = B11111110;
 
-double currentReading = 0.0;
-double oldReading = 0.0;
+double currentReading = 10.0;
+double oldReading = 1.0;
 
 void setup() {
     Serial.begin(9600);
-    tft.reset();
-  
-    uint16_t identifier = tft.readID();
-    if(identifier != 0x9325 || identifier != 0x9328 || identifier != 0x4535 || identifier != 0x7575 || identifier != 0x9341 || identifier != 0x8357 || identifier==0x0101)
-    {    
-        identifier=0x9341;
-    }
-    tft.begin(identifier);
-    tft.setRotation(1);
-    tft.fillScreen(BLACK);
+    pinMode(XM, OUTPUT);
+    pinMode(YP, OUTPUT);
     
+    //setup screen
+    uint16_t ID = tft.readID();
+    if (ID == 0xD3) ID = 0x9481;
+    tft.begin(ID);
+    tft.setRotation(1);
+
     //Draw zero button
+    tft.fillScreen(BLACK);
     tft.setTextColor(BLACK); 
     tft.setTextSize(4);
     tft.fillRect(ZERO_X, ZERO_Y, ZERO_L, ZERO_W, YELLOW);
-    tft.setCursor(114, 196);
+    tft.setCursor(BUTTON_TEXT_X, BUTTON_TEXT_Y);
     tft.print ("ZERO");
     
-    //Print mm
-    tft.setTextSize(5);
+    //set screen and font
     tft.setTextColor(WHITE);
-    tft.setCursor(240, TEXT_Y);
-    tft.print ("mm");
+    tft.setTextSize(6);
+    tft.setCursor(TEXT_X,TEXT_Y);
+    tft.print("100.0mm");
+    
 }
 
 void loop() {
+  
     TSPoint p = ts.getPoint();
-
-    // if sharing pins, you'll need to fix the directions of the touchscreen pins
-    pinMode(XM, OUTPUT);
-    pinMode(YP, OUTPUT);
 
     if (p.z > MINPRESSURE && p.z < MAXPRESSURE) { 
         int temp_py = p.y;
@@ -103,22 +100,27 @@ void loop() {
     }
 
     if (currentReading != oldReading){
-        tft.setCursor(TEXT_X, TEXT_Y);
-        tft.fillRect(TEXT_X, TEXT_Y, 210, 35, BLACK); //Clear old text with a black rectangle
-
+        tft.fillRect(TEXT_X, TEXT_Y, 300, 50, BLACK); //Clear old text with a black rectangle
+        String reading = String(round(currentReading * 10)/10);
+        
+        if(currentReading - (int)currentReading == 0)
+          reading += ".0";
+          
+        reading += "mm";
         //Pad with appropriate number of spaces depending on the size of the number
         if (currentReading >= 100)
-            tft.print (" ");
-        else if (currentReading < 100 && currentReading >= 10)
-            tft.print ("  ");
-        else if (currentReading < 10 && currentReading >= 0)
-            tft.print ("   ");
-        else{
-            currentReading = currentReading * -1;
-            tft.print ("-  ");  
-        }
-        
-        tft.print (currentReading);
+            reading = " " + reading;
+        else if (currentReading >= 10)
+            reading = "  " + reading;
+        else if (currentReading >= 0)
+            reading = "   " + reading;
+        else if (currentReading >= -10)
+            reading = "  -" + reading; 
+        else
+            reading = " -" + reading; 
+
+        tft.setCursor(TEXT_X,TEXT_Y);
+        tft.print (reading);
         oldReading = currentReading;
     }
 }
