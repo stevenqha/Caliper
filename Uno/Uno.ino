@@ -117,10 +117,10 @@ void loop() {
             currentReading = currentReading * -1;
             tft.print ("-  ");  
         }
+        
+        tft.print (currentReading);
+        oldReading = currentReading;
     }
-    tft.print (currentReading);
-
-    oldReading = currentReading;
 }
 
 void serialEvent(){
